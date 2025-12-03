@@ -131,14 +131,32 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* Footer link */}
-        <div className={`p-4 border-t border-slate-200 text-center ${isSidebarCollapsed ? 'hidden md:block' : 'block'}`}>
-          <button 
-            onClick={() => setShowIntro(true)} 
+        {/* Footer links */}
+        <div className={`p-4 border-t border-slate-200 text-center space-y-2 ${isSidebarCollapsed ? 'hidden md:block' : 'block'}`}>
+          <button
+            onClick={() => setShowIntro(true)}
             className="text-xs text-slate-500 hover:text-[#311B92] flex items-center justify-center gap-1 mx-auto transition-colors focus:outline-none focus:underline"
           >
             <Info className="w-3 h-3" /> About the framework
           </button>
+          <div className="flex flex-col gap-1 text-xs">
+            <a
+              href="https://anthralytic.substack.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-600 hover:text-[#311B92] transition-colors focus:outline-none focus:underline"
+            >
+              Anthralytic Substack
+            </a>
+            <a
+              href="https://www.anthralytic.ai/resources"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-600 hover:text-[#311B92] transition-colors focus:outline-none focus:underline"
+            >
+              Free Anthralytic AI Tools
+            </a>
+          </div>
         </div>
       </div>
 
