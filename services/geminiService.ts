@@ -1,112 +1,87 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { ConditionKey, Initiative, AnalysisResult } from "../types";
 import { CONDITIONS } from "../constants";
-
-const modelId = "gemini-2.5-flash";
-
-// Lazy initialization of the AI client to avoid errors on app load
-const getAIClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
-  }
-  return new GoogleGenAI({ apiKey });
-};
 
 /**
  * Generates specific initiative suggestions for WFM based on a condition.
  */
 export const generateSuggestions = async (conditionKey: ConditionKey): Promise<string[]> => {
-  const condition = CONDITIONS[conditionKey];
-  
-  const prompt = `
-    You are an expert in social systems change and the Women's Foundation of Minnesota (WFM).
-    
-    The user is mapping WFM's work using the "Six Conditions of Systems Change" framework.
-    Please generate 3 specific, realistic, and distinct examples of initiatives or strategies WFM might undertake (or has undertaken) that fall under the category of **${condition.label}**.
-    
-    Context for ${condition.label}: ${condition.description}
-    
-    Focus on themes like gender equity, economic justice, safety, and leadership.
-    Keep descriptions concise (under 15 words).
-    Return the response as a JSON array of strings.
-  `;
+  // Return static suggestions based on condition
+  const suggestions: Record<ConditionKey, string[]> = {
+    policies: ["Gender equity legislation advocacy", "Equal pay policy development", "Women's health policy initiatives"],
+    practices: ["Leadership development programs", "Grantmaking to women-led organizations", "Community partnership practices"],
+    resources: ["Funding for women entrepreneurs", "Resource allocation for underserved communities", "Investment in women's education"],
+    relationships: ["Coalition building across sectors", "Community stakeholder engagement", "Partnership with women's organizations"],
+    power: ["Advocacy for women in leadership", "Power-sharing governance models", "Community organizing for systemic change"],
+    mental: ["Challenging gender stereotypes", "Cultural narrative change campaigns", "Shifting mindsets on women's roles"]
+  };
 
-  try {
-    const ai = getAIClient();
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING }
-        }
-      }
-    });
-
-    const text = response.text;
-    if (!text) return [];
-    return JSON.parse(text) as string[];
-  } catch (error) {
-    console.error("Error generating suggestions:", error);
-    return ["Grantmaking for women-led businesses", "Lobbying for equal pay legislation", "Research report on the status of women"];
-  }
+  return suggestions[conditionKey] || ["Add your own initiatives"];
 };
 
 /**
  * Analyzes the current map of initiatives to find gaps and provide a "score".
  */
 export const analyzeSystemsMap = async (initiatives: Initiative[]): Promise<AnalysisResult> => {
-  const initiativesList = initiatives.map(i => `- [${CONDITIONS[i.condition].label}]: ${i.text}`).join('\n');
-  
-  const prompt = `
-    Analyze the following list of initiatives mapped to the "Six Conditions of Systems Change" for the Women's Foundation of Minnesota.
-    
-    Initiatives:
-    ${initiativesList}
-    
-    Your task:
-    1. Determine a "Systems Change Readiness Score" (0-100) based on how balanced the portfolio is across Explicit, Semi-Explicit, and Implicit levels.
-    2. Assign a "Level" title: "Surface Swimmer" (mostly explicit), "Deep Diver" (mixed), or "System Changer" (balanced across all 3).
-    3. Write a short "Gap Analysis" paragraph explaining what is missing or well-covered.
-    4. Provide 3 specific recommendations for the next strategic steps to deepen impact.
-
-    Return valid JSON matching the schema.
-  `;
-
-  try {
-    const ai = getAIClient();
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            score: { type: Type.NUMBER },
-            level: { type: Type.STRING },
-            gapAnalysis: { type: Type.STRING },
-            recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
-          },
-          required: ["score", "level", "gapAnalysis", "recommendations"]
-        }
-      }
-    });
-
-    const text = response.text;
-    if (!text) throw new Error("No response text");
-    return JSON.parse(text) as AnalysisResult;
-
-  } catch (error) {
-    console.error("Error analyzing map:", error);
+  if (initiatives.length < 3) {
     return {
       score: 0,
-      level: "Unknown",
-      gapAnalysis: "Unable to analyze at this time. Please ensure you have added initiatives.",
-      recommendations: ["Add more initiatives to get a proper analysis."]
+      level: "Getting Started",
+      gapAnalysis: "You need at least 3 initiatives to generate a meaningful analysis. Keep mapping your work across the six conditions!",
+      recommendations: ["Add more initiatives across different conditions", "Focus on balancing explicit and implicit work", "Consider power dynamics and mental models"]
     };
   }
+
+  // Count initiatives by level
+  const explicit = initiatives.filter(i => ['policies', 'practices', 'resources'].includes(i.condition)).length;
+  const semiExplicit = initiatives.filter(i => ['relationships', 'power'].includes(i.condition)).length;
+  const implicit = initiatives.filter(i => i.condition === 'mental').length;
+
+  const total = initiatives.length;
+  const explicitPct = (explicit / total) * 100;
+  const semiExplicitPct = (semiExplicit / total) * 100;
+  const implicitPct = (implicit / total) * 100;
+
+  // Calculate score based on balance
+  const balance = Math.min(explicitPct, semiExplicitPct, implicitPct);
+  const score = Math.round(30 + (balance * 2)); // 30-100 range
+
+  // Determine level
+  let level = "Surface Swimmer";
+  if (implicitPct > 20 && semiExplicitPct > 20) {
+    level = "System Changer";
+  } else if (semiExplicitPct > 15 || implicitPct > 10) {
+    level = "Deep Diver";
+  }
+
+  // Generate gap analysis
+  const gaps = [];
+  if (explicitPct < 30) gaps.push("structural policies and practices");
+  if (semiExplicitPct < 25) gaps.push("relationships and power dynamics");
+  if (implicitPct < 15) gaps.push("mental models and cultural narratives");
+
+  const gapAnalysis = gaps.length > 0
+    ? `Your portfolio shows ${total} initiatives. To achieve deeper systems change, consider strengthening work in: ${gaps.join(", ")}. ${level === "System Changer" ? "You're doing excellent work across all three levels!" : "Focus on balancing across all three levels for maximum impact."}`
+    : `Excellent! Your ${total} initiatives show strong balance across explicit, semi-explicit, and implicit conditions. This comprehensive approach positions you well for deep systems change.`;
+
+  // Generate recommendations
+  const recommendations = [];
+  if (implicit < 2) {
+    recommendations.push("Add initiatives focused on shifting mental models and cultural narratives");
+  }
+  if (semiExplicit < 2) {
+    recommendations.push("Invest in relationship building and addressing power dynamics");
+  }
+  if (explicit < 3) {
+    recommendations.push("Strengthen structural work through policies, practices, and resource allocation");
+  }
+  if (recommendations.length === 0) {
+    recommendations.push("Continue balanced work across all six conditions", "Document and share your systems change approach", "Build on existing strengths while maintaining balance");
+  }
+
+  return {
+    score,
+    level,
+    gapAnalysis,
+    recommendations: recommendations.slice(0, 3)
+  };
 };
