@@ -12,11 +12,14 @@ const PyramidViz: React.FC<PyramidVizProps> = ({ initiatives, onSelectCondition,
   
   const getCount = (key: ConditionKey) => initiatives.filter(i => i.condition === key).length;
 
-  // Interactive SVG Paths for an inverted pyramid divided into 3 levels.
-  // Row 1 (Top): Policies (Left), Practices (Center), Resource Flows (Right)
-  // Row 2 (Mid): Relationships (Left), Power Dynamics (Right)
-  // Row 3 (Bot): Mental Models (Center)
+  const handleKeyDown = (e: React.KeyboardEvent, key: ConditionKey) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelectCondition(key);
+    }
+  };
 
+  // Interactive SVG Paths for an inverted pyramid divided into 3 levels.
   const renderSection = (key: ConditionKey, pathD: string, cx: number, cy: number) => {
     const def = CONDITIONS[key];
     const count = getCount(key);
@@ -26,50 +29,68 @@ const PyramidViz: React.FC<PyramidVizProps> = ({ initiatives, onSelectCondition,
       <g 
         key={key} 
         onClick={() => onSelectCondition(key)} 
-        className="cursor-pointer transition-all duration-300 hover:brightness-110 group"
+        onKeyDown={(e) => handleKeyDown(e, key)}
+        role="button"
+        tabIndex={0}
+        aria-label={`${def.label} section, ${count} initiatives mapped. Click to add or view.`}
+        className="cursor-pointer transition-all duration-300 hover:brightness-110 group focus:outline-none"
       >
         <path 
           d={pathD} 
           fill={def.color} 
-          fillOpacity={count > 0 ? 1 : 0.7}
+          fillOpacity={count > 0 ? 1 : 0.8} // Higher base opacity for contrast
           stroke="white" 
-          strokeWidth={isSelected ? 4 : 1}
-          className="transition-all duration-300"
+          strokeWidth={isSelected ? 4 : 2}
+          className={`transition-all duration-300 ${isSelected ? 'brightness-110' : ''} group-focus:stroke-[4px] group-focus:stroke-yellow-300`}
           style={{ filter: isSelected ? 'drop-shadow(0 0 10px rgba(126, 87, 194, 0.6))' : 'none' }}
         />
+        {/* Text Label */}
         <text 
           x={cx} 
           y={cy} 
           textAnchor="middle" 
           className="text-[10px] uppercase font-bold fill-white pointer-events-none tracking-wider"
+          style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.3)' }} // Shadow for better contrast
         >
           {def.label}
         </text>
+        {/* Initiative Count Badge */}
         {count > 0 && (
-          <circle cx={cx} cy={cy + 15} r={8} fill="white" className="opacity-90" />
-        )}
-        {count > 0 && (
-          <text x={cx} y={cy + 18} textAnchor="middle" className="text-[10px] font-bold fill-[#311B92] pointer-events-none">
-            {count}
-          </text>
+          <g>
+            <circle cx={cx} cy={cy + 15} r={8} fill="white" className="opacity-95 shadow-sm" />
+            <text 
+              x={cx} 
+              y={cy + 18} 
+              textAnchor="middle" 
+              className="text-[10px] font-bold fill-black pointer-events-none" // Black text on white badge for AAA contrast
+              aria-hidden="true"
+            >
+              {count}
+            </text>
+          </g>
         )}
       </g>
     );
   };
 
   return (
-    <div className="w-full h-full flex items-center justify-center relative">
+    <div className="w-full h-full flex items-center justify-center relative p-2">
        {/* Background Decoration - Subtle WFM Purple Blur */}
        <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
-          <div className="w-[500px] h-[500px] rounded-full bg-[#7E57C2] blur-3xl"></div>
+          <div className="w-[300px] md:w-[500px] h-[300px] md:h-[500px] rounded-full bg-[#7E57C2] blur-3xl"></div>
        </div>
 
-      <svg viewBox="0 0 400 360" className="w-full max-w-xl drop-shadow-2xl filter">
+      <svg 
+        viewBox="0 0 400 370" 
+        className="w-full max-w-xl drop-shadow-2xl filter max-h-[60vh] md:max-h-none"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Interactive Inverted Pyramid Chart: The Six Conditions of Systems Change"
+      >
         <defs>
-          {/* WFM Gradient: From Teal (Surface) to Deep Purple (Implicit) */}
           <linearGradient id="wfmGradient" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#26C6DA" /> {/* Bright Teal */}
-            <stop offset="100%" stopColor="#311B92" /> {/* Deep Purple */}
+            <stop offset="0%" stopColor="#00838F" /> 
+            <stop offset="100%" stopColor="#311B92" />
           </linearGradient>
         </defs>
         
