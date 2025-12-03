@@ -2,9 +2,16 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ConditionKey, Initiative, AnalysisResult } from "../types";
 import { CONDITIONS } from "../constants";
 
-// Initialize the client with the API key from the environment
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const modelId = "gemini-2.5-flash";
+
+// Lazy initialization of the AI client to avoid errors on app load
+const getAIClient = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not configured");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 /**
  * Generates specific initiative suggestions for WFM based on a condition.
@@ -26,6 +33,7 @@ export const generateSuggestions = async (conditionKey: ConditionKey): Promise<s
   `;
 
   try {
+    const ai = getAIClient();
     const response = await ai.models.generateContent({
       model: modelId,
       contents: prompt,
@@ -69,6 +77,7 @@ export const analyzeSystemsMap = async (initiatives: Initiative[]): Promise<Anal
   `;
 
   try {
+    const ai = getAIClient();
     const response = await ai.models.generateContent({
       model: modelId,
       contents: prompt,
