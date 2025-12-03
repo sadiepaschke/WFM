@@ -67,6 +67,11 @@ const App: React.FC = () => {
               <p tabIndex={0}>
                 <strong>Welcome!</strong> This tool maps WFM's work against the <em className="text-[#311B92] font-bold not-italic">Six Conditions of Systems Change</em>.
               </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs">
+                <p className="text-amber-900">
+                  <strong>⚠️ Prototype Notice:</strong> This is a demonstration tool and not intended as a fully functioning application. Use for exploratory purposes only.
+                </p>
+              </div>
               <div className="space-y-3 pl-2 border-l-2 border-slate-200">
                 <div className="flex gap-3">
                    <div className="w-2 h-2 mt-1 bg-[#00796B] rounded-full shrink-0"></div>
